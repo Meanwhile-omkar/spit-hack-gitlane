@@ -105,9 +105,7 @@ export async function stageAll(dir) {
 /** Unstage all */
 export async function unstageAll(dir) {
   const matrix = await git.statusMatrix({ fs, dir });
-  for (const [filepath] of matrix) {
-    await git.resetIndex({ fs, dir, filepath });
-  }
+  await Promise.all(matrix.map(([filepath]) => git.resetIndex({ fs, dir, filepath })));
 }
 
 // ── Commits ───────────────────────────────────────────────────────────────

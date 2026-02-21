@@ -7,6 +7,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/HomeScreen';
 import CloneScreen from '../screens/CloneScreen';
 import LogScreen from '../screens/LogScreen';
+import FilesScreen from '../screens/FilesScreen';
 import ChangesScreen from '../screens/ChangesScreen';
 import BranchesScreen from '../screens/BranchesScreen';
 import RemoteScreen from '../screens/RemoteScreen';
@@ -23,15 +24,14 @@ const DARK_HEADER = {
 
 /** Bottom tab navigator shown when a repo is open */
 function RepoTabs({ route }) {
-  const { dir, name } = route.params;
+  const { dir } = route.params;
   return (
     <Tab.Navigator
       screenOptions={{
         tabBarStyle: { backgroundColor: '#161b22', borderTopColor: '#21262d' },
         tabBarActiveTintColor: '#58a6ff',
         tabBarInactiveTintColor: '#8b949e',
-        ...DARK_HEADER,
-        headerTitle: name,
+        headerShown: false,   // Stack header above handles title + back button
       }}
     >
       <Tab.Screen
@@ -39,6 +39,12 @@ function RepoTabs({ route }) {
         component={LogScreen}
         initialParams={{ dir }}
         options={{ tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>📋</Text> }}
+      />
+      <Tab.Screen
+        name="Files"
+        component={FilesScreen}
+        initialParams={{ dir }}
+        options={{ tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>📁</Text> }}
       />
       <Tab.Screen
         name="Changes"
@@ -68,7 +74,11 @@ export default function AppNavigator() {
       <Stack.Navigator screenOptions={DARK_HEADER}>
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'GitLane' }} />
         <Stack.Screen name="Clone" component={CloneScreen} options={{ title: 'Clone Repository' }} />
-        <Stack.Screen name="RepoTabs" component={RepoTabs} options={{ headerShown: false }} />
+        <Stack.Screen
+          name="RepoTabs"
+          component={RepoTabs}
+          options={({ route }) => ({ title: route.params.name })}
+        />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
       </Stack.Navigator>
     </NavigationContainer>

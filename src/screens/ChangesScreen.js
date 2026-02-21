@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
   StyleSheet, ActivityIndicator, Alert, ScrollView,
@@ -28,6 +29,7 @@ export default function ChangesScreen({ route }) {
   const [diffContent, setDiffContent] = useState('');
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const status = await getStatus(dir);
       setFiles(status);
@@ -38,7 +40,8 @@ export default function ChangesScreen({ route }) {
     }
   }, [dir]);
 
-  useEffect(() => { load(); }, [load]);
+  // Reload every time this tab becomes focused (e.g. after editing a file in Files tab)
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const toggle = async (file) => {
     try {

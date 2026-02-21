@@ -17,7 +17,7 @@ export default function RemoteScreen({ route }) {
     setFetchStatus(null);
     try {
       const result = await fn();
-      setFetchStatus({ ok: true, msg: result ?? `${label} successful` });
+      setFetchStatus({ ok: true, msg: `${label} successful` });
     } catch (e) {
       setFetchStatus({ ok: false, msg: e.message ?? String(e) });
     } finally {
