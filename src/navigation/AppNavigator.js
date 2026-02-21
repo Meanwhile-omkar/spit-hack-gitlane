@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -13,19 +13,46 @@ import BranchesScreen from '../screens/BranchesScreen';
 import RemoteScreen from '../screens/RemoteScreen';
 import PRScreen from '../screens/PRScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { useStore } from '../store/useStore';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const DARK_HEADER = {
-  headerStyle: { backgroundColor: '#161b22' },
-  headerTintColor: '#c9d1d9',
-  headerTitleStyle: { fontWeight: '700' },
-};
+/** Pill capsule in the header showing connection status */
+function ConnectionPill() {
+  const { isOnline } = useNetworkStatus();
+  return (
+    <View style={[p.pill, isOnline ? p.pillOnline : p.pillOffline]}>
+      <View style={[p.dot, isOnline ? p.dotOnline : p.dotOffline]} />
+      <Text style={[p.label, isOnline ? p.labelOnline : p.labelOffline]}>
+        {isOnline ? 'Online' : 'Offline'}
+      </Text>
+    </View>
+  );
+}
+
+const p = StyleSheet.create({
+  pill: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 20, gap: 5, marginRight: 4,
+  },
+  pillOnline:  { backgroundColor: '#132113', borderWidth: 1, borderColor: '#3fb950' },
+  pillOffline: { backgroundColor: '#2d1a00', borderWidth: 1, borderColor: '#d29922' },
+  dot:        { width: 7, height: 7, borderRadius: 4 },
+  dotOnline:  { backgroundColor: '#3fb950' },
+  dotOffline: { backgroundColor: '#d29922' },
+  label:       { fontSize: 11, fontWeight: '700' },
+  labelOnline: { color: '#3fb950' },
+  labelOffline:{ color: '#d29922' },
+});
 
 /** Bottom tab navigator shown when a repo is open */
 function RepoTabs({ route }) {
   const { dir } = route.params;
+  const { pendingPushCount } = useStore();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -69,7 +96,11 @@ function RepoTabs({ route }) {
         name="Remote"
         component={RemoteScreen}
         initialParams={{ dir }}
-        options={{ tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>☁️</Text> }}
+        options={{
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>☁️</Text>,
+          tabBarBadge: pendingPushCount > 0 ? pendingPushCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: '#d29922', color: '#fff', fontSize: 10 },
+        }}
       />
     </Tab.Navigator>
   );
@@ -78,13 +109,22 @@ function RepoTabs({ route }) {
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={DARK_HEADER}>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: { backgroundColor: '#161b22' },
+          headerTintColor: '#c9d1d9',
+          headerTitleStyle: { fontWeight: '700' },
+        }}
+      >
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'GitLane' }} />
         <Stack.Screen name="Clone" component={CloneScreen} options={{ title: 'Clone Repository' }} />
         <Stack.Screen
           name="RepoTabs"
           component={RepoTabs}
-          options={({ route }) => ({ title: route.params.name })}
+          options={({ route }) => ({
+            title: route.params.name,
+            headerRight: () => <ConnectionPill />,
+          })}
         />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
       </Stack.Navigator>
