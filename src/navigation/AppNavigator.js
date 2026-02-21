@@ -11,6 +11,7 @@ import FilesScreen from '../screens/FilesScreen';
 import ChangesScreen from '../screens/ChangesScreen';
 import BranchesScreen from '../screens/BranchesScreen';
 import RemoteScreen from '../screens/RemoteScreen';
+import PRScreen from '../screens/PRScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
@@ -57,6 +58,12 @@ function RepoTabs({ route }) {
         component={BranchesScreen}
         initialParams={{ dir }}
         options={{ tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>⎇</Text> }}
+      />
+      <Tab.Screen
+        name="PRs"
+        component={PRScreen}
+        initialParams={{ dir }}
+        options={{ tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>🔀</Text> }}
       />
       <Tab.Screen
         name="Remote"

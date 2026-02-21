@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
-  StyleSheet, ActivityIndicator, Alert,
+  StyleSheet, ActivityIndicator, Alert, Modal, RefreshControl,
 } from 'react-native';
 import RNFS from 'react-native-fs';
 
@@ -27,6 +27,9 @@ export default function FilesScreen({ route }) {
   const [editContent, setEditContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [showNewFile, setShowNewFile] = useState(false);
+  const [newFileName, setNewFileName] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadDir = useCallback(async (path) => {
     setLoading(true);
@@ -105,6 +108,26 @@ export default function FilesScreen({ route }) {
     setCurrentPath(parts.join('/'));
   };
 
+  const createNewFile = async () => {
+    const name = newFileName.trim();
+    if (!name) return;
+    const filePath = `${currentPath}/${name}`;
+    try {
+      const exists = await RNFS.exists(filePath);
+      if (exists) { Alert.alert('Already exists', `${name} already exists.`); return; }
+      await RNFS.writeFile(filePath, '', 'utf8');
+      setShowNewFile(false);
+      setNewFileName('');
+      loadDir(currentPath);
+      // Open it in the editor right away
+      setEditingFile({ path: filePath, name });
+      setEditContent('');
+      setDirty(false);
+    } catch (e) {
+      Alert.alert('Create failed', e.message);
+    }
+  };
+
   // ── Editor view ────────────────────────────────────────────────────────────
   if (editingFile) {
     const relPath = editingFile.path.replace(dir + '/', '');
@@ -150,16 +173,31 @@ export default function FilesScreen({ route }) {
           </TouchableOpacity>
         )}
         <Text style={s.breadcrumb} numberOfLines={1}>{breadcrumb}</Text>
+        <TouchableOpacity onPress={() => { setNewFileName(''); setShowNewFile(true); }} style={s.addBtn}>
+          <Text style={s.addText}>＋</Text>
+        </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={s.center}><ActivityIndicator color="#58a6ff" size="large" /></View>
       ) : items.length === 0 ? (
-        <View style={s.center}><Text style={s.empty}>Empty directory</Text></View>
+        <View style={s.center}>
+          <Text style={s.empty}>Empty directory</Text>
+          <TouchableOpacity style={s.emptyAddBtn} onPress={() => { setNewFileName(''); setShowNewFile(true); }}>
+            <Text style={s.emptyAddText}>＋ New File</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={items}
           keyExtractor={i => i.path}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={async () => { setRefreshing(true); await loadDir(currentPath); setRefreshing(false); }}
+              tintColor="#58a6ff"
+            />
+          }
           renderItem={({ item }) => (
             <TouchableOpacity style={s.item} onPress={() => openItem(item)}>
               <Text style={s.itemIcon}>{item.isDirectory() ? '📁' : '📄'}</Text>
@@ -174,6 +212,33 @@ export default function FilesScreen({ route }) {
           )}
         />
       )}
+
+      {/* New File Modal */}
+      <Modal visible={showNewFile} transparent animationType="fade">
+        <View style={s.overlay}>
+          <View style={s.newFileModal}>
+            <Text style={s.newFileTitle}>New File</Text>
+            <TextInput
+              style={s.newFileInput}
+              placeholder="filename.txt"
+              placeholderTextColor="#8b949e"
+              value={newFileName}
+              onChangeText={setNewFileName}
+              autoFocus
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <View style={s.newFileActions}>
+              <TouchableOpacity style={s.cancelBtn} onPress={() => setShowNewFile(false)}>
+                <Text style={s.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.createBtn} onPress={createNewFile}>
+                <Text style={s.createText}>Create</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -191,6 +256,20 @@ const s = StyleSheet.create({
   upBtn: { marginRight: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#21262d', borderRadius: 6 },
   upText: { color: '#58a6ff', fontSize: 14, fontWeight: '700' },
   breadcrumb: { flex: 1, color: '#8b949e', fontSize: 12, fontFamily: 'monospace' },
+  addBtn: { marginLeft: 8, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#238636', borderRadius: 6 },
+  addText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  emptyAddBtn: { marginTop: 14, backgroundColor: '#238636', borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10 },
+  emptyAddText: { color: '#fff', fontWeight: '700' },
+
+  overlay: { flex: 1, backgroundColor: '#000000bb', justifyContent: 'center', padding: 32 },
+  newFileModal: { backgroundColor: '#161b22', borderRadius: 14, padding: 24, borderWidth: 1, borderColor: '#30363d' },
+  newFileTitle: { color: '#c9d1d9', fontSize: 17, fontWeight: '700', marginBottom: 14 },
+  newFileInput: { backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#30363d', borderRadius: 8, color: '#c9d1d9', padding: 12, fontSize: 15, fontFamily: 'monospace', marginBottom: 16 },
+  newFileActions: { flexDirection: 'row', gap: 10 },
+  cancelBtn: { flex: 1, borderWidth: 1, borderColor: '#30363d', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+  cancelText: { color: '#8b949e', fontSize: 14 },
+  createBtn: { flex: 1, backgroundColor: '#238636', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+  createText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
   item: {
     flexDirection: 'row', alignItems: 'center',
