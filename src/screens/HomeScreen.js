@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
-  StyleSheet, StatusBar, Alert, Modal, ActivityIndicator,
+  StyleSheet, StatusBar, Alert, Modal, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../store/useStore';
 import { initRepo, cloneFromPeer, REPOS_DIR } from '../git/gitOps';
 
@@ -34,9 +35,13 @@ export default function HomeScreen({ navigation }) {
   const [peerInfo, setPeerInfo] = useState(null);  // { repoName }
   const [detecting, setDetecting] = useState(false);
   const [cloning, setCloning] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const detectTimer = useRef(null);
 
   useEffect(() => { loadRepos(); }, []);
+
+  // Reload repo list whenever this screen comes into focus
+  useFocusEffect(useCallback(() => { loadRepos(); }, [loadRepos]));
 
   // Auto-detect peer info when URL is typed in the modal
   useEffect(() => {
@@ -100,8 +105,8 @@ export default function HomeScreen({ navigation }) {
     const name = peerInfo?.repoName || `peer-${Date.now()}`;
     setCloning(true);
     try {
-      const { dir } = await cloneFromPeer(url, name);
-      await addRepo({ dir, name, url: `peer:${url}` });
+      const { dir, branch } = await cloneFromPeer(url, name);
+      await addRepo({ dir, name, url: `peer:${url}`, branch });
       setShowPeerClone(false);
       setPeerUrl('');
       setPeerInfo(null);
@@ -134,6 +139,14 @@ export default function HomeScreen({ navigation }) {
           data={[...repos].sort((a, b) => (b.lastOpened ?? 0) - (a.lastOpened ?? 0))}
           keyExtractor={r => r.dir}
           contentContainerStyle={{ paddingBottom: 150 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={async () => { setRefreshing(true); await loadRepos(); setRefreshing(false); }}
+              tintColor="#58a6ff"
+              colors={['#58a6ff']}
+            />
+          }
           renderItem={({ item }) => (
             <TouchableOpacity
               style={s.repoCard}

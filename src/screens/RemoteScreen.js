@@ -3,16 +3,21 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, ScrollView,
 } from 'react-native';
-import { fetchRepo, pullRepo, pushRepo } from '../git/gitOps';
+import { fetchRepo, pullRepo, pushRepo, fetchFromPeer, pushToPeer, getCurrentBranch } from '../git/gitOps';
 import { useStore } from '../store/useStore';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 
 export default function RemoteScreen({ route }) {
   const { dir } = route.params;
-  const { creds, queuePush, pendingPushCount, flushPushQueue } = useStore();
+  const { creds, queuePush, pendingPushCount, flushPushQueue, repos } = useStore();
   const { isOnline } = useNetworkStatus();
   const [fetchStatus, setFetchStatus] = useState(null);
   const [loading, setLoading] = useState('');
+
+  // Detect peer-synced repos (url stored as "peer:http://...")
+  const thisRepo = repos.find(r => r.dir === dir);
+  const isPeer = !!thisRepo?.url?.startsWith('peer:');
+  const peerUrl = isPeer ? thisRepo.url.slice(5) : null; // strip "peer:" prefix
 
   const run = async (label, fn) => {
     setLoading(label);
@@ -31,7 +36,37 @@ export default function RemoteScreen({ route }) {
   const name = creds.name || 'GitLane User';
   const email = creds.email || 'user@gitlane.app';
 
+  const handleFetch = () => {
+    if (isPeer) {
+      run('Fetch', () => fetchFromPeer(dir, peerUrl));
+    } else {
+      run('Fetch', () => fetchRepo(dir, token));
+    }
+  };
+
+  const handlePull = () => {
+    if (isPeer) {
+      // fetchFromPeer updates refs + checks out working tree — equivalent to pull
+      run('Pull', () => fetchFromPeer(dir, peerUrl));
+    } else {
+      run('Pull', () => pullRepo(dir, name, email, token));
+    }
+  };
+
   const handlePush = () => {
+    if (isPeer) {
+      Alert.alert('Push to Peer', 'Make sure the host device has their server running, then push?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Push',
+          onPress: () => run('Push', async () => {
+            const branch = await getCurrentBranch(dir);
+            await pushToPeer(dir, peerUrl, branch);
+          }),
+        },
+      ]);
+      return;
+    }
     if (!isOnline) {
       // Queue for later
       const repoName = dir.split('/').pop();
@@ -72,7 +107,7 @@ export default function RemoteScreen({ route }) {
         </Text>
       </View>
 
-      {!token && isOnline && (
+      {!token && isOnline && !isPeer && (
         <View style={s.warn}>
           <Text style={s.warnText}>⚠️  No PAT token set in Settings. Push/pull to private repos will fail.</Text>
         </View>
@@ -103,28 +138,28 @@ export default function RemoteScreen({ route }) {
 
       <ActionCard
         title="Fetch"
-        description="Download remote refs without merging"
+        description={isPeer ? 'Download latest commits from peer device' : 'Download remote refs without merging'}
         icon="⬇"
         loading={loading === 'Fetch'}
-        disabled={!isOnline}
-        onPress={() => run('Fetch', () => fetchRepo(dir, token))}
+        disabled={!isPeer && !isOnline}
+        onPress={handleFetch}
       />
       <ActionCard
         title="Pull"
-        description="Fetch + merge remote changes"
+        description={isPeer ? 'Fetch + apply changes from peer device' : 'Fetch + merge remote changes'}
         icon="⬆⬇"
         loading={loading === 'Pull'}
-        disabled={!isOnline}
-        onPress={() => run('Pull', () => pullRepo(dir, name, email, token))}
+        disabled={!isPeer && !isOnline}
+        onPress={handlePull}
       />
       <ActionCard
         title="Push"
-        description={isOnline ? 'Upload local commits to remote' : 'Queue push — will send when online'}
+        description={isPeer ? 'Send local commits to peer device' : isOnline ? 'Upload local commits to remote' : 'Queue push — will send when online'}
         icon="⬆"
         loading={loading === 'Push'}
         disabled={false}
         onPress={handlePush}
-        offline={!isOnline}
+        offline={!isPeer && !isOnline}
       />
 
       {fetchStatus && (

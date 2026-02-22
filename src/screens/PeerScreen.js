@@ -171,8 +171,8 @@ export default function PeerScreen({ route }) {
     const name = (peerInfo?.repoName || `peer-${Date.now()}`);
     setLoading('clone');
     try {
-      const { dir: newDir } = await cloneFromPeer(url, name);
-      await addRepo({ dir: newDir, name, url: `peer:${url}` });
+      const { dir: newDir, branch } = await cloneFromPeer(url, name);
+      await addRepo({ dir: newDir, name, url: `peer:${url}`, branch });
       Alert.alert('Cloned!', `"${name}" added to your repos.`);
       logEvent(`Cloned "${name}"`);
     } catch (e) {

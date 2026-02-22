@@ -306,6 +306,10 @@ export async function getRemoteUrl(dir) {
   }
 }
 
+export async function getCurrentBranch(dir) {
+  return (await git.currentBranch({ fs, dir }).catch(() => null)) ?? 'main';
+}
+
 // ── Peer-to-peer (local network) ───────────────────────────────────────────
 
 const PEER_TEMP_DIR = `${RNFS.TemporaryDirectoryPath}/gitlane_peer`;
@@ -379,6 +383,16 @@ export async function fetchFromPeer(dir, peerUrl) {
       console.warn(`[peer] Failed to fetch branch ${ref.name}:`, e.message);
     }
   }
+
+  // Update the working tree to reflect the updated refs
+  const currentRef = await git.currentBranch({ fs, dir }).catch(() => null);
+  const branchToCheckout = (currentRef && refs.find(r => r.name === currentRef))
+    ? currentRef
+    : refs[0]?.name;
+  if (branchToCheckout) {
+    await git.checkout({ fs, dir, ref: branchToCheckout }).catch(() => {});
+  }
+
   return refs;
 }
 
@@ -417,11 +431,14 @@ export async function cloneFromPeer(peerUrl, repoName) {
   await RNFS.mkdir(dir);
   await git.init({ fs, dir, defaultBranch: 'main' });
 
-  const refs = await fetchFromPeer(dir, peerUrl);
-
-  // Checkout whichever branch came first (usually main/master)
-  if (refs.length > 0) {
-    await git.checkout({ fs, dir, ref: refs[0].name }).catch(() => {});
+  try {
+    await fetchFromPeer(dir, peerUrl); // also checks out the branch and updates working tree
+    const branch = await git.currentBranch({ fs, dir }).catch(() => null) ?? 'main';
+    return { dir, name: repoName, branch };
+  } catch (e) {
+    // Clean up the partially-created directory so the next attempt doesn't
+    // hit the "already exists" guard with a broken repo.
+    await RNFS.unlink(dir).catch(() => {});
+    throw e;
   }
-  return { dir, name: repoName };
 }

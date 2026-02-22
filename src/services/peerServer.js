@@ -57,11 +57,10 @@ function respond(socket, status, statusText, data) {
     '',
     body,
   ].join('\r\n');
+  // Use end() not destroy() — end() flushes all pending data before closing.
+  // destroy() cuts the TCP connection immediately, dropping large responses mid-send.
   try {
-    socket.write(msg);
-  } catch {}
-  try {
-    socket.destroy();
+    socket.end(msg);
   } catch {}
 }
 
