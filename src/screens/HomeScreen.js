@@ -6,6 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../store/useStore';
 import { initRepo, cloneFromPeer, REPOS_DIR } from '../git/gitOps';
+import { Icon } from '../components/Icon';
 
 // Fetch with timeout — AbortSignal.timeout not in Hermes
 async function fetchWithTimeout(url, ms = 4000) {
@@ -124,13 +125,13 @@ export default function HomeScreen({ navigation }) {
       <View style={s.header}>
         <Text style={s.title}>GitLane</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
-          <Text style={s.icon}>⚙️</Text>
+          <Icon name="settings" size={24} color="#58a6ff" />
         </TouchableOpacity>
       </View>
 
       {repos.length === 0 ? (
         <View style={s.empty}>
-          <Text style={s.emptyIcon}>📂</Text>
+          <Icon name="folder" size={56} color="#58a6ff" />
           <Text style={s.emptyText}>No repositories yet</Text>
           <Text style={s.emptySubtext}>Clone from GitHub, create local, or join a peer</Text>
         </View>
@@ -154,9 +155,11 @@ export default function HomeScreen({ navigation }) {
               onLongPress={() => confirmDelete(item)}
             >
               <View style={s.repoIcon}>
-                <Text style={s.repoIconText}>
-                  {item.url?.startsWith('peer:') ? '📡' : item.url ? '📁' : '🗂️'}
-                </Text>
+                <Icon
+                  name={item.url?.startsWith('peer:') ? 'peer' : item.url ? 'folder' : 'newFolder'}
+                  size={28}
+                  color="#58a6ff"
+                />
               </View>
               <View style={s.repoInfo}>
                 <Text style={s.repoName}>{item.name}</Text>
@@ -165,8 +168,8 @@ export default function HomeScreen({ navigation }) {
                 </Text>
                 <Text style={s.repoUrl} numberOfLines={1}>
                   {item.url?.startsWith('peer:')
-                    ? '📡 peer repo'
-                    : item.url ?? '📴 local only'}
+                    ? 'peer repo'
+                    : item.url ?? 'local only'}
                 </Text>
               </View>
               <Text style={s.chevron}>›</Text>
@@ -181,20 +184,23 @@ export default function HomeScreen({ navigation }) {
           style={[s.fab, s.fabClone]}
           onPress={() => navigation.navigate('Clone')}
         >
-          <Text style={s.fabText}>⬇  Clone from GitHub</Text>
+          <Icon name="download" size={18} color="#fff" />
+          <Text style={s.fabText}>  Clone from GitHub</Text>
         </TouchableOpacity>
         <View style={s.fabRow}>
           <TouchableOpacity
             style={[s.fabHalf, s.fabLocal]}
             onPress={() => { setNewRepoName(''); setShowCreate(true); }}
           >
-            <Text style={s.fabText}>🗂️  New Local</Text>
+            <Icon name="newFolder" size={18} color="#fff" />
+            <Text style={s.fabText}>  New Local</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[s.fabHalf, s.fabPeer]}
             onPress={() => { setPeerUrl(''); setPeerInfo(null); setShowPeerClone(true); }}
           >
-            <Text style={s.fabText}>📡  Peer Clone</Text>
+            <Icon name="peer" size={18} color="#fff" />
+            <Text style={s.fabText}>  Peer Clone</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -203,7 +209,10 @@ export default function HomeScreen({ navigation }) {
       <Modal visible={showCreate} transparent animationType="fade">
         <View style={s.overlay}>
           <View style={s.modal}>
-            <Text style={s.modalTitle}>🗂️  New Local Repository</Text>
+            <View style={s.modalTitleRow}>
+              <Icon name="newFolder" size={20} color="#c9d1d9" />
+              <Text style={s.modalTitle}>  New Local Repository</Text>
+            </View>
             <Text style={s.modalSub}>
               Works fully offline. Share with peers later via the Peer tab.
             </Text>
@@ -243,7 +252,10 @@ export default function HomeScreen({ navigation }) {
       <Modal visible={showPeerClone} transparent animationType="fade">
         <View style={s.overlay}>
           <View style={s.modal}>
-            <Text style={s.modalTitle}>📡  Clone from Peer</Text>
+            <View style={s.modalTitleRow}>
+              <Icon name="peer" size={20} color="#c9d1d9" />
+              <Text style={s.modalTitle}>  Clone from Peer</Text>
+            </View>
             <Text style={s.modalSub}>
               Scan the QR on the host's screen with your camera app, then paste the URL below.
             </Text>
@@ -268,12 +280,14 @@ export default function HomeScreen({ navigation }) {
             )}
             {!detecting && peerInfo && (
               <View style={s.peerOk}>
-                <Text style={s.peerOkText}>✓  Found repo: "{peerInfo.repoName}"</Text>
+                <Icon name="check" size={16} color="#3fb950" />
+                <Text style={s.peerOkText}>  Found repo: "{peerInfo.repoName}"</Text>
               </View>
             )}
             {!detecting && !peerInfo && peerUrl.startsWith('http') && (
               <View style={s.peerFail}>
-                <Text style={s.peerFailText}>✕  Could not reach peer — check the URL</Text>
+                <Icon name="close" size={16} color="#f78166" />
+                <Text style={s.peerFailText}>  Could not reach peer — check the URL</Text>
               </View>
             )}
 
@@ -312,9 +326,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#21262d',
   },
   title: { fontSize: 22, fontWeight: '700', color: '#58a6ff' },
-  icon: { fontSize: 22 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  emptyIcon: { fontSize: 56 },
   emptyText: { fontSize: 18, color: '#c9d1d9', fontWeight: '600' },
   emptySubtext: { fontSize: 13, color: '#8b949e', textAlign: 'center', paddingHorizontal: 24 },
 
@@ -325,7 +337,6 @@ const s = StyleSheet.create({
     padding: 14, borderWidth: 1, borderColor: '#21262d',
   },
   repoIcon: { marginRight: 12 },
-  repoIconText: { fontSize: 28 },
   repoInfo: { flex: 1 },
   repoName: { fontSize: 16, fontWeight: '600', color: '#c9d1d9' },
   repoBranch: { fontSize: 12, color: '#3fb950', marginTop: 2 },
@@ -336,10 +347,10 @@ const s = StyleSheet.create({
     position: 'absolute', bottom: 16, left: 16, right: 16, gap: 8,
   },
   fab: {
-    borderRadius: 12, paddingVertical: 14, alignItems: 'center',
+    borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center',
   },
   fabRow: { flexDirection: 'row', gap: 8 },
-  fabHalf: { flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
+  fabHalf: { flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
   fabClone: { backgroundColor: '#238636' },
   fabLocal: { backgroundColor: '#1f6feb' },
   fabPeer: { backgroundColor: '#6e40c9' },
@@ -350,6 +361,7 @@ const s = StyleSheet.create({
     backgroundColor: '#161b22', borderRadius: 16, padding: 22,
     borderWidth: 1, borderColor: '#30363d', gap: 10,
   },
+  modalTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   modalTitle: { color: '#c9d1d9', fontSize: 17, fontWeight: '700' },
   modalSub: { color: '#8b949e', fontSize: 12, lineHeight: 18 },
   modalInput: {
@@ -371,12 +383,12 @@ const s = StyleSheet.create({
   detectText: { color: '#58a6ff', fontSize: 13 },
   peerOk: {
     backgroundColor: '#132113', borderRadius: 8, padding: 10,
-    borderWidth: 1, borderColor: '#3fb950',
+    borderWidth: 1, borderColor: '#3fb950', flexDirection: 'row', alignItems: 'center',
   },
   peerOkText: { color: '#3fb950', fontWeight: '600', fontSize: 13 },
   peerFail: {
     backgroundColor: '#2d1a1a', borderRadius: 8, padding: 10,
-    borderWidth: 1, borderColor: '#f78166',
+    borderWidth: 1, borderColor: '#f78166', flexDirection: 'row', alignItems: 'center',
   },
   peerFailText: { color: '#f78166', fontSize: 13 },
 });

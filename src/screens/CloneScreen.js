@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { cloneRepo } from '../git/gitOps';
 import { useStore } from '../store/useStore';
+import { Icon } from '../components/Icon';
 
 export default function CloneScreen({ navigation }) {
   const [url, setUrl] = useState('');
@@ -80,11 +81,17 @@ export default function CloneScreen({ navigation }) {
 
       {creds.token ? (
         <View style={s.tokenBadge}>
-          <Text style={s.tokenText}>🔑  Using saved PAT token</Text>
+          <View style={s.tokenBadgeRow}>
+            <Icon name="check" size={16} color="#3fb950" />
+            <Text style={s.tokenText}>  Using saved PAT token</Text>
+          </View>
         </View>
       ) : (
         <TouchableOpacity style={s.tokenHint} onPress={() => navigation.navigate('Settings')}>
-          <Text style={s.tokenHintText}>⚠️  No token set — private repos will fail. Tap to add →</Text>
+          <View style={s.tokenHintRow}>
+            <Icon name="close" size={16} color="#d29922" />
+            <Text style={s.tokenHintText}>  No token set — private repos will fail. Tap to add →</Text>
+          </View>
         </TouchableOpacity>
       )}
 
@@ -108,7 +115,8 @@ export default function CloneScreen({ navigation }) {
         onPress={handleClone}
         disabled={loading}
       >
-        <Text style={s.btnText}>{loading ? 'Cloning...' : '⬇  Clone'}</Text>
+        <Icon name="download" size={18} color="#fff" />
+        <Text style={s.btnText}>  {loading ? 'Cloning...' : 'Clone'}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -126,11 +134,13 @@ const s = StyleSheet.create({
     marginTop: 16, backgroundColor: '#1a2d1a', borderRadius: 8,
     padding: 10, borderWidth: 1, borderColor: '#3fb950',
   },
+  tokenBadgeRow: { flexDirection: 'row', alignItems: 'center' },
   tokenText: { color: '#3fb950', fontSize: 13 },
   tokenHint: {
     marginTop: 16, backgroundColor: '#2d1a00', borderRadius: 8,
     padding: 10, borderWidth: 1, borderColor: '#d29922',
   },
+  tokenHintRow: { flexDirection: 'row', alignItems: 'center' },
   tokenHintText: { color: '#d29922', fontSize: 12 },
   progressBox: {
     marginTop: 20, backgroundColor: '#161b22', borderRadius: 10,
@@ -144,7 +154,7 @@ const s = StyleSheet.create({
   progressPct: { color: '#58a6ff', fontSize: 13, fontWeight: '600' },
   btn: {
     marginTop: 28, backgroundColor: '#238636', borderRadius: 10,
-    paddingVertical: 14, alignItems: 'center',
+    paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center',
   },
   btnDisabled: { backgroundColor: '#1a3520', opacity: 0.7 },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },

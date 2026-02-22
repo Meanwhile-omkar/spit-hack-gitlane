@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { TransitionSpecs, CardStyleInterpolators } from '@react-navigation/stack';
 
 import HomeScreen from '../screens/HomeScreen';
 import CloneScreen from '../screens/CloneScreen';
@@ -16,6 +17,7 @@ import PeerScreen from '../screens/PeerScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useStore } from '../store/useStore';
+import { Icon } from '../components/Icon';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -67,38 +69,38 @@ function RepoTabs({ route }) {
         name="Log"
         component={LogScreen}
         initialParams={{ dir }}
-        options={{ tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>📋</Text> }}
+        options={{ tabBarIcon: ({ color, size }) => <Icon name="log" size={size} color={color} /> }}
       />
       <Tab.Screen
         name="Files"
         component={FilesScreen}
         initialParams={{ dir }}
-        options={{ tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>📁</Text> }}
+        options={{ tabBarIcon: ({ color, size }) => <Icon name="files" size={size} color={color} /> }}
       />
       <Tab.Screen
         name="Changes"
         component={ChangesScreen}
         initialParams={{ dir }}
-        options={{ tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>✏️</Text> }}
+        options={{ tabBarIcon: ({ color, size }) => <Icon name="edit" size={size} color={color} /> }}
       />
       <Tab.Screen
         name="Branches"
         component={BranchesScreen}
         initialParams={{ dir }}
-        options={{ tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>⎇</Text> }}
+        options={{ tabBarIcon: ({ color, size }) => <Icon name="branch" size={size} color={color} /> }}
       />
       <Tab.Screen
         name="PRs"
         component={PRScreen}
         initialParams={{ dir }}
-        options={{ tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>🔀</Text> }}
+        options={{ tabBarIcon: ({ color, size }) => <Icon name="merge" size={size} color={color} /> }}
       />
       <Tab.Screen
         name="Remote"
         component={RemoteScreen}
         initialParams={{ dir }}
         options={{
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>☁️</Text>,
+          tabBarIcon: ({ color, size }) => <Icon name="cloud" size={size} color={color} />,
           tabBarBadge: pendingPushCount > 0 ? pendingPushCount : undefined,
           tabBarBadgeStyle: { backgroundColor: '#d29922', color: '#fff', fontSize: 10 },
         }}
@@ -107,7 +109,7 @@ function RepoTabs({ route }) {
         name="Peer"
         component={PeerScreen}
         initialParams={{ dir }}
-        options={{ tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>📡</Text> }}
+        options={{ tabBarIcon: ({ color, size }) => <Icon name="peer" size={size} color={color} /> }}
       />
     </Tab.Navigator>
   );
@@ -121,6 +123,11 @@ export default function AppNavigator() {
           headerStyle: { backgroundColor: '#161b22' },
           headerTintColor: '#c9d1d9',
           headerTitleStyle: { fontWeight: '700' },
+          cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+          transitionSpec: {
+            open: TransitionSpecs.TransitionIOSSpec,
+            close: TransitionSpecs.TransitionIOSSpec,
+          },
         }}
       >
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'GitLane' }} />

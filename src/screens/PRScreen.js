@@ -10,6 +10,7 @@ import {
   getPRDetails, getDefaultBranch,
 } from '../github/githubApi';
 import { useStore } from '../store/useStore';
+import { Icon } from '../components/Icon';
 
 export default function PRScreen({ route }) {
   const { dir } = route.params;
@@ -159,7 +160,7 @@ export default function PRScreen({ route }) {
   if (error) {
     return (
       <View style={s.center}>
-        <Text style={s.errorIcon}>⚠️</Text>
+        <Icon name="close" size={48} color="#f78166" />
         <Text style={s.errorText}>{error}</Text>
         <TouchableOpacity style={s.retryBtn} onPress={() => { setLoading(true); load(); }}>
           <Text style={s.retryText}>Retry</Text>

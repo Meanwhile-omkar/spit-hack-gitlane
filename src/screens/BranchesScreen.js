@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { listBranches, createBranch, checkoutBranch, deleteBranch } from '../git/gitOps';
 import { useStore } from '../store/useStore';
+import { Icon } from '../components/Icon';
 
 export default function BranchesScreen({ route }) {
   const { dir } = route.params;
@@ -65,7 +66,8 @@ export default function BranchesScreen({ route }) {
         keyExtractor={b => b.fullName ?? b.name}
         ListHeaderComponent={
           <TouchableOpacity style={s.newBtn} onPress={() => setShowNew(true)}>
-            <Text style={s.newBtnText}>＋  New Branch</Text>
+            <Icon name="plus" size={18} color="#fff" />
+            <Text style={s.newBtnText}>  New Branch</Text>
           </TouchableOpacity>
         }
         renderItem={({ item }) => (
@@ -74,8 +76,8 @@ export default function BranchesScreen({ route }) {
             onPress={() => !item.isRemote && checkout(item.name)}
             onLongPress={() => !item.isCurrent && !item.isRemote && doDelete(item.name)}
           >
-            <Text style={s.branchIcon}>{item.isRemote ? '☁' : '⎇'}</Text>
-            <View style={{ flex: 1 }}>
+            <Icon name={item.isRemote ? 'cloud' : 'branch'} size={18} color="#8b949e" />
+            <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={[s.name, item.isCurrent && s.nameCurrent]}>
                 {item.name}
               </Text>
@@ -119,7 +121,7 @@ const s = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   newBtn: {
     margin: 16, backgroundColor: '#238636', borderRadius: 10,
-    paddingVertical: 12, alignItems: 'center',
+    paddingVertical: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center',
   },
   newBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   row: {
@@ -128,7 +130,6 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#161b22',
   },
   rowActive: { backgroundColor: '#161b22' },
-  branchIcon: { fontSize: 18, marginRight: 12, color: '#8b949e' },
   name: { color: '#c9d1d9', fontSize: 15 },
   nameCurrent: { color: '#58a6ff', fontWeight: '600' },
   remote: { color: '#8b949e', fontSize: 11, marginTop: 2 },

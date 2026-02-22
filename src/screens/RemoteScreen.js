@@ -6,6 +6,7 @@ import {
 import { fetchRepo, pullRepo, pushRepo, fetchFromPeer, pushToPeer, getCurrentBranch } from '../git/gitOps';
 import { useStore } from '../store/useStore';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { Icon } from '../components/Icon';
 
 export default function RemoteScreen({ route }) {
   const { dir } = route.params;
@@ -109,7 +110,10 @@ export default function RemoteScreen({ route }) {
 
       {!token && isOnline && !isPeer && (
         <View style={s.warn}>
-          <Text style={s.warnText}>⚠️  No PAT token set in Settings. Push/pull to private repos will fail.</Text>
+          <View style={s.warnRow}>
+            <Icon name="close" size={16} color="#d29922" />
+            <Text style={s.warnText}>  No PAT token set in Settings. Push/pull to private repos will fail.</Text>
+          </View>
         </View>
       )}
 
@@ -139,7 +143,7 @@ export default function RemoteScreen({ route }) {
       <ActionCard
         title="Fetch"
         description={isPeer ? 'Download latest commits from peer device' : 'Download remote refs without merging'}
-        icon="⬇"
+        iconName="download"
         loading={loading === 'Fetch'}
         disabled={!isPeer && !isOnline}
         onPress={handleFetch}
@@ -147,7 +151,7 @@ export default function RemoteScreen({ route }) {
       <ActionCard
         title="Pull"
         description={isPeer ? 'Fetch + apply changes from peer device' : 'Fetch + merge remote changes'}
-        icon="⬆⬇"
+        iconName="download"
         loading={loading === 'Pull'}
         disabled={!isPeer && !isOnline}
         onPress={handlePull}
@@ -155,7 +159,7 @@ export default function RemoteScreen({ route }) {
       <ActionCard
         title="Push"
         description={isPeer ? 'Send local commits to peer device' : isOnline ? 'Upload local commits to remote' : 'Queue push — will send when online'}
-        icon="⬆"
+        iconName="download"
         loading={loading === 'Push'}
         disabled={false}
         onPress={handlePush}
@@ -164,23 +168,26 @@ export default function RemoteScreen({ route }) {
 
       {fetchStatus && (
         <View style={[s.status, fetchStatus.ok ? s.statusOk : s.statusErr]}>
-          <Text style={[s.statusText, fetchStatus.ok ? s.statusOkText : s.statusErrText]}>
-            {fetchStatus.ok ? '✓  ' : '✕  '}{fetchStatus.msg}
-          </Text>
+          <View style={s.statusRow}>
+            <Icon name={fetchStatus.ok ? 'check' : 'close'} size={16} color={fetchStatus.ok ? '#3fb950' : '#f78166'} />
+            <Text style={[s.statusText, fetchStatus.ok ? s.statusOkText : s.statusErrText]}>
+              {fetchStatus.msg}
+            </Text>
+          </View>
         </View>
       )}
     </ScrollView>
   );
 }
 
-function ActionCard({ title, description, icon, loading, disabled, onPress, offline }) {
+function ActionCard({ title, description, iconName, loading, disabled, onPress, offline }) {
   return (
     <TouchableOpacity
       style={[s.card, disabled && !offline && s.cardDisabled]}
       onPress={onPress}
       disabled={!!loading || (disabled && !offline)}
     >
-      <Text style={[s.cardIcon, disabled && !offline && s.dimText]}>{icon}</Text>
+      <Icon name={iconName} size={24} color={disabled && !offline ? '#3d444d' : '#58a6ff'} />
       <View style={{ flex: 1 }}>
         <Text style={[s.cardTitle, disabled && !offline && s.dimText]}>{title}</Text>
         <Text style={s.cardDesc}>{description}</Text>
@@ -219,6 +226,7 @@ const s = StyleSheet.create({
     backgroundColor: '#2d1a00', borderRadius: 10,
     padding: 12, borderWidth: 1, borderColor: '#d29922',
   },
+  warnRow: { flexDirection: 'row', alignItems: 'center' },
   warnText: { color: '#d29922', fontSize: 13 },
 
   queueBanner: {
@@ -250,7 +258,8 @@ const s = StyleSheet.create({
   status: { borderRadius: 10, padding: 14, marginTop: 4 },
   statusOk: { backgroundColor: '#1a2d1a', borderWidth: 1, borderColor: '#3fb950' },
   statusErr: { backgroundColor: '#2d1a1a', borderWidth: 1, borderColor: '#f78166' },
-  statusText: { fontSize: 14 },
+  statusRow: { flexDirection: 'row', alignItems: 'center' },
+  statusText: { fontSize: 14, marginLeft: 8 },
   statusOkText: { color: '#3fb950' },
   statusErrText: { color: '#f78166' },
 });
