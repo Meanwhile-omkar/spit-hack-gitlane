@@ -305,3 +305,123 @@ export async function getRemoteUrl(dir) {
     return null;
   }
 }
+
+// ── Peer-to-peer (local network) ───────────────────────────────────────────
+
+const PEER_TEMP_DIR = `${RNFS.TemporaryDirectoryPath}/gitlane_peer`;
+
+async function ensurePeerTemp() {
+  const exists = await RNFS.exists(PEER_TEMP_DIR);
+  if (!exists) await RNFS.mkdir(PEER_TEMP_DIR);
+}
+
+/**
+ * Initialise a new local git repo (no remote needed).
+ * Creates a README.md and an initial commit so the repo is immediately usable.
+ */
+export async function initRepo(dirPath, repoName, authorName = 'GitLane User', authorEmail = 'user@gitlane.app') {
+  await ensureReposDir();
+  await RNFS.mkdir(dirPath);
+  await git.init({ fs, dir: dirPath, defaultBranch: 'main' });
+  // Seed with a README so there's something to commit
+  await RNFS.writeFile(
+    `${dirPath}/README.md`,
+    `# ${repoName}\n\nCreated with GitLane (offline)\n`,
+    'utf8',
+  );
+  await git.add({ fs, dir: dirPath, filepath: 'README.md' });
+  await git.commit({
+    fs,
+    dir: dirPath,
+    message: 'Initial commit',
+    author: { name: authorName, email: authorEmail },
+  });
+  return dirPath;
+}
+
+/**
+ * Fetch all refs + objects from a peer HTTP server.
+ * Updates local branches to match the peer's state.
+ */
+export async function fetchFromPeer(dir, peerUrl) {
+  const resp = await fetch(`${peerUrl}/api/refs`);
+  if (!resp.ok) throw new Error(`Peer returned ${resp.status}`);
+  const { refs } = await resp.json();
+  if (!refs || refs.length === 0) throw new Error('Peer has no branches');
+
+  await ensurePeerTemp();
+
+  for (const ref of refs) {
+    try {
+      // Check if we already have this exact commit
+      try {
+        await git.readCommit({ fs, dir, oid: ref.sha });
+        // Have it — just update the local branch pointer
+        await git.writeRef({ fs, dir, ref: `refs/heads/${ref.name}`, value: ref.sha, force: true });
+        continue;
+      } catch { /* don't have it, need to download */ }
+
+      const packResp = await fetch(`${peerUrl}/api/pack?ref=${encodeURIComponent(ref.name)}`);
+      if (!packResp.ok) continue;
+      const { pack } = await packResp.json();
+
+      // Write pack into the repo's pack directory so indexPack can find it
+      const packDir = `${dir}/.git/objects/pack`;
+      const packDirExists = await RNFS.exists(packDir);
+      if (!packDirExists) await RNFS.mkdir(packDir);
+
+      const packPath = `${packDir}/pack-peer-${Date.now()}.pack`;
+      await RNFS.writeFile(packPath, pack, 'base64');
+      await git.indexPack({ fs, dir, filepath: packPath });
+
+      await git.writeRef({ fs, dir, ref: `refs/heads/${ref.name}`, value: ref.sha, force: true });
+    } catch (e) {
+      console.warn(`[peer] Failed to fetch branch ${ref.name}:`, e.message);
+    }
+  }
+  return refs;
+}
+
+/**
+ * Push a local branch to a peer HTTP server.
+ */
+export async function pushToPeer(dir, peerUrl, branch) {
+  const sha = await git.resolveRef({ fs, dir, ref: branch });
+  const commits = await git.log({ fs, dir, ref: branch, depth: 1000 });
+  const oids = commits.map(c => c.oid);
+
+  const { packfile } = await git.packObjects({ fs, dir, oids, write: false });
+  const packBase64 = Buffer.from(packfile).toString('base64');
+
+  const resp = await fetch(`${peerUrl}/api/receive`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ref: branch, sha, pack: packBase64 }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
+    throw new Error(err.error || `Push failed: ${resp.status}`);
+  }
+  return resp.json();
+}
+
+/**
+ * Clone a full repo from a peer — creates directory, inits git, fetches all branches.
+ */
+export async function cloneFromPeer(peerUrl, repoName) {
+  await ensureReposDir();
+  const dir = `${REPOS_DIR}/${repoName}`;
+  const exists = await RNFS.exists(dir);
+  if (exists) throw new Error(`"${repoName}" already exists locally`);
+
+  await RNFS.mkdir(dir);
+  await git.init({ fs, dir, defaultBranch: 'main' });
+
+  const refs = await fetchFromPeer(dir, peerUrl);
+
+  // Checkout whichever branch came first (usually main/master)
+  if (refs.length > 0) {
+    await git.checkout({ fs, dir, ref: refs[0].name }).catch(() => {});
+  }
+  return { dir, name: repoName };
+}

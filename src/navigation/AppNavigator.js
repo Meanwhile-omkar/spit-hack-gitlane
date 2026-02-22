@@ -12,6 +12,7 @@ import ChangesScreen from '../screens/ChangesScreen';
 import BranchesScreen from '../screens/BranchesScreen';
 import RemoteScreen from '../screens/RemoteScreen';
 import PRScreen from '../screens/PRScreen';
+import PeerScreen from '../screens/PeerScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useStore } from '../store/useStore';
@@ -101,6 +102,12 @@ function RepoTabs({ route }) {
           tabBarBadge: pendingPushCount > 0 ? pendingPushCount : undefined,
           tabBarBadgeStyle: { backgroundColor: '#d29922', color: '#fff', fontSize: 10 },
         }}
+      />
+      <Tab.Screen
+        name="Peer"
+        component={PeerScreen}
+        initialParams={{ dir }}
+        options={{ tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>📡</Text> }}
       />
     </Tab.Navigator>
   );
